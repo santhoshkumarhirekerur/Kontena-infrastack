@@ -1,0 +1,17 @@
+
+version: '2'
+services:
+  git-server:
+    image: gogs/gogs
+    ports:
+      - "3000:3000"
+      - "3022:22"
+    volumes:
+      - "/var/gogs:/data"
+  git-database:
+    image: postgres:9.6
+    environment:
+      - POSTGRES_USER=gogs
+      - POSTGRES_PASSWORD=gogs
+    volumes:
+      - "/var/lib/postgresql:/var/lib/postgresql/data"

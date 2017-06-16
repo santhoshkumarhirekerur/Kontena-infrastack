@@ -1,0 +1,59 @@
+kontena master login --code bX8iOVjw https://10.61.40.100/
+kontena master login --code tHE384OU --name AUS-CBR-M1 https://10.61.40.100
+
+
+
+kontena master init-cloud
+
+kontena grid create --initial-size=3 cbr-dev
+
+kontena grid show --token cbr-dev
+
+
+
+kontena service scale whomami/whomami 3
+
+
+export WEB_HOOK_URL=http://infra.webhook.kontena.cookapac.com
+
+
+
+===remote login
+
+kontena master login --remote --name AUS-CBR-M1 https://10.61.40.100
+
+
+
+-- Delete docker image --------------------------------
+
+curl -H "Accept: application/vnd.docker.distribution.manifest.v2+json" -X GET http://infra.registry.kontena.cookapac.com/v2/webhook/manifests/0.3.1
+
+curl -X  DELETE http://registry.cbr-infra.kontena.cookapac.com/v2/webhook/manifests/sha256:783dc685886c7d586379b586ef21513f410f663d357663e3cfcdde35ff824609
+
+----------------------------------docker build client changes
+    Create or modify /etc/docker/daemon.json
+    { "insecure-registries":["myregistry.example.com:5000"] }
+    Restart docker daemon
+    sudo service docker restart
+	
+	
+	
+--install phython
+sudo apt-get update
+sudo apt-get -y upgrade
+sudo apt-get install build-essential libssl-dev libffi-dev python-dev
+sudo apt-get install python-setuptools
+sudo apt-get install python-setuptools
+
+apt install entr
+
+
+-- certificate installation
+ kontena certificate register cerPeter.Healey@CookMedical.com
+ kontena certificate get --secret-name SSL_CERT_GOGS gogs.cbr-infra.kontena.cookapac.com
+ 
+
+
+
+
+

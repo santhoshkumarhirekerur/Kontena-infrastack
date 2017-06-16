@@ -1,0 +1,124 @@
+stack: cbr-infra/infra
+version: 0.1.0
+variables:
+  app_domain:
+    type: string
+    default: registry.cbr-infra.kontena.cookapac.com
+    from:
+      prompt: Docker registry domain?
+  grid_env:
+    type: string
+    default: cbr-infra
+    from:
+      prompt: Grid name?
+services:
+  lb_internal:
+    image: kontena/lb:latest
+    ports:
+      - 443:443
+      - 80:80
+    secrets:
+      - secret: COOK_MEDICAL_CERT
+        name: SSL_CERTS
+        type: env
+    affinity:
+      - label==loadbalancer
+    health_check:
+      protocol: tcp
+      port: 443
+      uri: /__health
+    environment:
+      - KONTENA_LB_HEALTH_URI=/__health
+
+  registryWeb:
+    image: hyper/docker-registry-web
+    ports:
+      - "8080:8080"
+    links:
+      - registry
+      - lb_internal
+    environment:
+      - REGISTRY_URL=http://registry:5000/v2
+      - REGISTRY_NAME=registry
+      - KONTENA_LB_VIRTUAL_HOSTS=registryWeb.{{grid_env}}.kontena.cookapac.com
+      - KONTENA_LB_MODE=http
+      - KONTENA_LB_BALANCE=roundrobin
+      - KONTENA_LB_INTERNAL_PORT=8080
+  registry:
+    image: registry:2
+    instances: 1
+    stateful: true
+    ports:
+      - 5000:5000
+    environment:
+      - REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY=/registry
+      - REGISTRY_STORAGE_DELETE_ENABLED=True
+      - KONTENA_LB_VIRTUAL_HOSTS=registry.{{grid_env}}.kontena.cookapac.com
+      - KONTENA_LB_MODE=http
+      - KONTENA_LB_BALANCE=roundrobin
+      - KONTENA_LB_INTERNAL_PORT=5000
+    volumes:
+      - /root/data/docker-registry:/registry
+    links:
+      - lb_internal
+  git-server:
+    image: gogs/gogs
+    ports:
+      - "3000:3000"
+      - "10022:22"
+    environment:
+      - KONTENA_LB_VIRTUAL_HOSTS=gogs.{{grid_env}}.kontena.cookapac.com
+      - KONTENA_LB_MODE=http
+      - KONTENA_LB_BALANCE=roundrobin
+      - KONTENA_LB_INTERNAL_PORT=3000
+    volumes:
+      - "/var/gogs:/data"
+    links:
+      - lb_internal
+    affinity:
+      - service==git-database
+  git-database:
+    image: postgres:9.6
+    stateful: true
+    environment:
+      - POSTGRES_USER=gogs
+      - POSTGRES_PASSWORD=gogs
+    volumes:
+      - "/var/lib/postgresql:/var/lib/postgresql/data"
+    links:
+      - lb_internal
+  drone-server:
+    image: drone/drone:0.5
+    ports:
+      - 8000:8000
+    volumes:
+      - /root/drone:/var/lib/drone/
+    links:
+      - lb_internal
+    environment:
+      - DRONE_OPEN=true
+      - DRONE_SECRET=gogs
+      - DRONE_GOGS=true
+      - DRONE_GOGS_URL=http://git-server:3000/
+      - DRONE_GOGS_GIT_USERNAME=gogs
+      - DRONE_GOGS_GIT_PASSWORD=gogs
+      - DRONE_GOGS_SKIP_VERIFY=true
+      - DEBUG=true
+      - KONTENA_LB_VIRTUAL_HOSTS=drone.{{grid_env}}.kontena.cookapac.com
+      - KONTENA_LB_MODE=http
+      - KONTENA_LB_BALANCE=roundrobin
+      - KONTENA_LB_INTERNAL_PORT=8000
+    affinity:
+      - label!=loadbalancer
+  drone-agent:
+    image: drone/drone:0.5
+    command: agent
+    depends_on: [ drone-server ]
+    links:
+      - drone-server
+      - lb_internal
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DRONE_SERVER=ws://drone-server:8000/ws/broker
+      - DRONE_SECRET=gogs

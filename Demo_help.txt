@@ -1,0 +1,24 @@
+Kontena master login
+
+
+10.61.40.100
+kontena grid create --initial-size=3 cbr-test
+kontena grid show --token cbr-test
+
+kontena node label add AUS-CBR-T1 loadbalancer
+
+
+--git 
+git remote set-url origin http://gogs.cbr-infra.kontena.cookapac.com/gogs/json-config.git
+git config --global http.sslVerify false
+
+
+--self signed certifcate
+---------------
+openssl req -x509 -newkey rsa:2048 -keyout key.pem -out ca.pem -days 1080 -nodes -subj '/CN=*/O=Cook Medical LTD./C=AU'
+cat ca.pem key.pem > cert.pem
+kontena vault write COOK_MEDICAL_CERT "$(cat cert.pem)"
+
+
+
+

@@ -1,0 +1,35 @@
+curl --header "Host:wordpress.kontena.cookapac.com" http://kontena.cookapac.com
+
+
+kontena service scale whomami/whomami 3
+
+
+kontena master login --remote --name AUS-CBR-M1 https://10.61.40.100
+
+
+http://cbr-eureka.cbr-eureka:1111
+
+command: java -Xmx256m -Xms32m -jar -Dapp.config.location=/data/config /data/cbr-registration-1.0.0.RELEASE.jar 23003 --spring.config.location=file:/data/config/registration-server.yml
+
+FROM smebberson/alpine-openjdk:latest
+
+
+
+
+
+-- copy files
+
+
+scp /root/data/cbr/cbr-ui/src/main/webapp root@10.61.40.106:/root/data/cbr/cbr-ui/src/main/webapp
+
+
+cpuguy83/nfs-server 
+
+
+http://drone.cbr-infra.kontena.cookapac.com/gogs/cook-webhook
+
+
+
+-- git reset to remote header
+git fetch origin
+git reset --hard origin/master
